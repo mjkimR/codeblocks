@@ -48,6 +48,7 @@ class LangfuseCallbackInjector(BaseLLMPatcher):
             BaseChatModel: The modified LangChain model with integrated Langfuse callbacks.
         """
         instance.invoke = self.invoke_wrapper(instance.invoke, self.handler)
+        # TODO ainvoke, stream, astream
         return instance
 
     @staticmethod
