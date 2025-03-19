@@ -5,7 +5,7 @@ from langchain_core.language_models import BaseChatModel
 
 from llm_factory import LLMFactory
 
-from patcher.langfuse_wrapper import LangfuseWrapper
+from patcher.langfuse_callback_injector import LangfuseCallbackInjector
 
 _MODEL_CONFIGS = {
     "gpt-4o-mini": {
@@ -37,7 +37,7 @@ _MODEL_CONFIGS = {
     [_MODEL_CONFIGS["local-chat"], True],
 ])
 async def test_create_chat_llm(config, call_test: bool):
-    llm = LLMFactory.create_llm(patchers=[LangfuseWrapper()], **config)
+    llm = LLMFactory.create_llm(patchers=[LangfuseCallbackInjector()], **config)
     assert llm is not None
     assert isinstance(llm, BaseChatModel)
 
