@@ -64,3 +64,9 @@ async def test_create_embedding_llm(config):
     llm = LLMFactory.create_llm(**config)
     assert llm is not None
     assert isinstance(llm, Embeddings)
+
+
+@pytest.mark.parametrize("config", [_MODEL_CONFIGS["local-embedding"]])
+async def test_not_allow_test(config):
+    with pytest.raises(ValueError):
+        llm = LLMFactory.create_llm(patchers=[BufferedStreamingPatcher(buffer_size=5)], **config)

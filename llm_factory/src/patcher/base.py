@@ -16,8 +16,8 @@ class BaseLLMPatcher:
     """
 
     def from_llm_class(self, llm_class: type):
-        # if all([not isinstance(instance, allowed_class) for allowed_class in self.ALLOWED_CLASSES]):
-        #     raise ValueError(f"Unsupported LLM type: {type(instance)}")
+        if all([not issubclass(llm_class, allowed_class) for allowed_class in self.ALLOWED_CLASSES]):
+            raise ValueError(f"Unsupported LLM type: {type(llm_class)}")
         return self._from_llm_class(llm_class)
 
     def _from_llm_class(self, llm_class: type) -> type:
