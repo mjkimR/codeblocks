@@ -4,6 +4,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 
 from llm_factory import LLMFactory
+from patcher.buffered_streaming import BufferedStreamingPatcher
 
 from patcher.langfuse_callback_injector import LangfuseCallbackInjector
 
@@ -37,9 +38,25 @@ _MODEL_CONFIGS = {
     [_MODEL_CONFIGS["local-chat"], True],
 ])
 async def test_create_chat_llm(config, call_test: bool):
-    llm = LLMFactory.create_llm(patchers=[LangfuseCallbackInjector()], **config)
+    llm = LLMFactory.create_llm(patchers=[
+        LangfuseCallbackInjector(),
+        BufferedStreamingPatcher(buffer_size=5)
+    ], **config)
+
     assert llm is not None
     assert isinstance(llm, BaseChatModel)
+
+    # Test only if call_test is True (to avoid consuming API credits)
+    if call_test:
+        msg = "Say 'hi'. Do not say other things."
+        # invoke
+        assert "hi" in llm.invoke(msg).content.lower()
+        # ainvoke
+        assert "hi" in (await llm.ainvoke(msg)).content.lower()
+        # stream
+        assert "hi" in "".join([line.content for line in llm.stream(msg)]).lower()
+        # astream
+        assert "hi" in "".join([line.content async for line in llm.astream(msg)]).lower()
 
 
 @pytest.mark.parametrize("config", [_MODEL_CONFIGS["local-embedding"]])

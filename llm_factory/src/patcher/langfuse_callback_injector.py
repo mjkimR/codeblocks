@@ -37,37 +37,28 @@ class LangfuseCallbackInjector(BaseLLMPatcher):
         self.handler = CallbackHandler(session_id=self.session_id, user_id=self.user_id, **kwargs)
         self.handler.auth_check()
 
-    def _from_llm(self, instance: BaseChatModel) -> BaseChatModel:
-        """
-        Modifies a LangChain `BaseChatModel` instance by integrating Langfuse callback handling.
-
-        Args:
-            instance (BaseChatModel): The LangChain model to be modified.
-
-        Returns:
-            BaseChatModel: The modified LangChain model with integrated Langfuse callbacks.
-        """
-        instance.invoke = self.invoke_wrapper(instance.invoke, self.handler)
-        # TODO ainvoke, stream, astream
-        return instance
+    def _from_llm_class(self, llm_class: type) -> type:
+        return type(llm_class.__name__, (llm_class,), {
+            "invoke": self.call_wrapper(getattr(llm_class, "invoke"), self.handler),
+            "ainvoke": self.call_wrapper(getattr(llm_class, "ainvoke"), self.handler),
+            "stream": self.call_wrapper(getattr(llm_class, "stream"), self.handler),
+            "astream": self.call_wrapper(getattr(llm_class, "astream"), self.handler),
+        })
 
     @staticmethod
-    def invoke_wrapper(func, langfuse_handler):
-        """
-        Wraps a model's invocation method with Langfuse callback handling.
+    def _append_handler(configs, handler):
+        if "config" not in configs:
+            configs["config"] = {"callbacks": [handler]}
+        elif "callbacks" not in configs["config"]:
+            configs["config"]["callbacks"] = [handler]
+        else:
+            configs["config"]["callbacks"].append(handler)
+        return configs
 
-        This method dynamically adds Langfuse callbacks to the invocation process, enabling tracking and logging.
-
-        Args:
-            func (callable): The original invocation method of the model.
-            langfuse_handler (CallbackHandler): The Langfuse handler to be injected into the invocation process.
-
-        Returns:
-            callable: The wrapped invocation method with integrated Langfuse handling.
-        """
-
+    @staticmethod
+    def call_wrapper(func, langfuse_handler):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            return func(*args, **kwargs, config={"callbacks": [langfuse_handler]})
+            return func(*args, **LangfuseCallbackInjector._append_handler(kwargs, langfuse_handler))
 
         return wrapper

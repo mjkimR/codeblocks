@@ -2,9 +2,7 @@ import json
 import os.path
 from typing import Any, Literal
 
-from langchain_core.embeddings import Embeddings
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_openai.chat_models.base import BaseChatModel
 
 from patcher.base import BaseLLMPatcher
 
@@ -36,16 +34,16 @@ class LLMFactory:
             ValueError: If an unsupported LLM type is provided.
         """
         if llm_type == "chat":
-            llm = ChatModelFactory.create_model(provider, **kwargs)
+            llm_class, configs = ChatModelConfigFactory.create_model(provider, **kwargs)
         elif llm_type == "embedding":
-            llm = EmbeddingModelFactory.create_model(provider, **kwargs)
+            llm_class, configs = EmbeddingModelConfigFactory.create_model(provider, **kwargs)
         else:
             raise ValueError(f"Unsupported LLM type: {llm_type}")
 
         if patchers:
             for patcher in patchers:
-                llm = patcher.from_llm(llm)
-        return llm
+                llm_class = patcher.from_llm_class(llm_class)
+        return llm_class(**configs)
 
     @staticmethod
     def from_template(key: str, json_path=".template"):
@@ -74,79 +72,75 @@ class LLMFactory:
         return LLMFactory.create_llm(**template[key])
 
 
-class ChatModelFactory:
-    @staticmethod
+class ChatModelConfigFactory:
+    @classmethod
     def create_model(
+            cls,
             provider: Literal["openai", "lm_studio"],
             **kwargs
-    ) -> BaseChatModel:
+    ) -> (type, dict):
         """
-        Creates a LangChain-based chat model using the specified provider.
-
-        This factory method selects the appropriate creation method for the given provider and returns a
-        LangChain `BaseChatModel` instance.
+        Creates a chat model configuration based on the specified provider.
 
         Args:
-            provider (Literal["openai", "lm_studio"]): The provider of the LangChain chat model. Supported providers are "openai" and "lm_studio".
-            **kwargs: Additional keyword arguments passed to the underlying model creation method.
+            provider (Literal["openai", "lm_studio"]): The provider of the chat model. Can be "openai" or "lm_studio".
+            **kwargs: Additional keyword arguments passed to the model creation method.
 
         Returns:
-            BaseChatModel: The LangChain chat model instance.
+            tuple: A tuple containing the model class and its configuration dictionary.
 
         Raises:
             ValueError: If an unsupported provider is specified.
         """
         _create_method = {
-            "openai": ChatModelFactory._create_openai,
-            "lm_studio": ChatModelFactory._create_lm_studio,
+            "openai": cls._create_openai,
+            "lm_studio": cls._create_lm_studio,
         }.get(provider)
         if _create_method is None:
             raise ValueError(f"Unsupported LLM provider for ChatModel: {provider}")
         return _create_method(**kwargs)
 
-    @staticmethod
-    def _create_openai(**kwargs: Any) -> BaseChatModel:
-        return ChatOpenAI(**kwargs)
+    @classmethod
+    def _create_openai(cls, **kwargs: Any) -> (type, dict):
+        return ChatOpenAI, kwargs
 
-    @staticmethod
-    def _create_lm_studio(base_url="http://localhost:1234/v1", api_key="NO_NEED", **kwargs: Any) -> BaseChatModel:
-        return ChatOpenAI(base_url=base_url, api_key=api_key, **kwargs)
+    @classmethod
+    def _create_lm_studio(cls, base_url="http://localhost:1234/v1", api_key="NO_NEED", **kwargs: Any) -> (type, dict):
+        return ChatOpenAI, {"base_url": base_url, "api_key": api_key, **kwargs}
 
 
-class EmbeddingModelFactory:
-    @staticmethod
+class EmbeddingModelConfigFactory:
+    @classmethod
     def create_model(
+            cls,
             provider: Literal["openai", "lm_studio"],
             **kwargs
-    ) -> Embeddings:
+    ) -> (type, dict):
         """
-        Creates a LangChain-based embedding model using the specified provider.
-
-        This factory method selects the appropriate creation method for the given provider and returns a
-        LangChain `Embeddings` instance.
+        Creates an embedding model configuration based on the specified provider.
 
         Args:
-            provider (Literal["openai", "lm_studio"]): The provider of the LangChain embedding model. Supported providers are "openai" and "lm_studio".
-            **kwargs: Additional keyword arguments passed to the underlying model creation method.
+            provider (Literal["openai", "lm_studio"]): The provider of the embedding model. Can be "openai" or "lm_studio".
+            **kwargs: Additional keyword arguments passed to the model creation method.
 
         Returns:
-            Embeddings: The LangChain embedding model instance.
+            tuple: A tuple containing the model class and its configuration dictionary.
 
         Raises:
             ValueError: If an unsupported provider is specified.
         """
         _create_method = {
-            "openai": EmbeddingModelFactory._create_openai,
-            "lm_studio": EmbeddingModelFactory._create_lm_studio,
+            "openai": cls._create_openai,
+            "lm_studio": cls._create_lm_studio,
         }.get(provider)
         if _create_method is None:
             raise ValueError(f"Unsupported LLM provider for EmbeddingModel: {provider}")
         return _create_method(**kwargs)
 
-    @staticmethod
-    def _create_openai(**kwargs: Any) -> Embeddings:
-        return OpenAIEmbeddings(**kwargs)
+    @classmethod
+    def _create_openai(cls, **kwargs: Any) -> (type, dict):
+        return OpenAIEmbeddings, kwargs
 
-    @staticmethod
-    def _create_lm_studio(base_url="http://localhost:1234/v1", api_key="NO_NEED", **kwargs: Any) -> Embeddings:
-        return OpenAIEmbeddings(base_url=base_url, api_key=api_key, **kwargs)
+    @classmethod
+    def _create_lm_studio(cls, base_url="http://localhost:1234/v1", api_key="NO_NEED", **kwargs: Any) -> (type, dict):
+        return OpenAIEmbeddings, {"base_url": base_url, "api_key": api_key, **kwargs}
