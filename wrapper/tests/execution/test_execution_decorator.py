@@ -1,6 +1,6 @@
 import pytest
 
-from execution.execution_decorator import execution_decorator
+from src.execution.execution_decorator import execution_decorator
 import time
 import asyncio
 
