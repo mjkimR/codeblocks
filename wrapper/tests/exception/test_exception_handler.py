@@ -1,7 +1,7 @@
 import pytest
 import json
 
-from src.exception.exception_handler import exception_handler
+from exception.exception_handler import exception_handler
 
 
 # Mock logger for testing

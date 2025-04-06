@@ -1,6 +1,6 @@
 import pytest
 
-from src.exception.exception_tracer import exception_tracer
+from exception.exception_tracer import exception_tracer
 
 
 # Mock logger for testing

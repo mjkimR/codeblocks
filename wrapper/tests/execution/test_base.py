@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 from contextlib import contextmanager
-from src.execution.base import BaseExecutionWrapper
+from execution.base import BaseExecutionWrapper
 import time
 
 
