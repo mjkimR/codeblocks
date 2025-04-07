@@ -5,14 +5,27 @@ from contextlib import contextmanager
 
 class BaseExecutionWrapper:
     """
-    A base class that acts as both a execution and a wrapper for synchronous
-    and asynchronous functions, using the __call__ method.
+    A base class that serves as both an execution and a wrapper for synchronous
+    and asynchronous functions. This is achieved using the `__call__` method.
+
+    Attributes:
+        None
     """
 
     @contextmanager
     def wrapping_logic(self, *args, **kwargs):
         """
-        Default wrapping logic. Override this method to customize behavior.
+        Default wrapping logic for pre- and post-execution steps.
+
+        This method acts as a context manager and can be overridden to customize
+        behavior specific to execution.
+
+        Args:
+            *args: Positional arguments that may be passed to the wrapping logic.
+            **kwargs: Keyword arguments that may be passed to the wrapping logic.
+
+        Yields:
+            None
         """
         print("Default pre-execution steps...")
         yield
@@ -20,7 +33,16 @@ class BaseExecutionWrapper:
 
     def __call__(self, func):
         """
-        Allow the class to be used as a execution without creating an instance.
+        Decorator to wrap a function for execution, allowing both synchronous
+        and asynchronous functions to be managed through the wrapper.
+
+        Args:
+            func (Callable): The function to be wrapped. It can be either
+            synchronous or asynchronous.
+
+        Returns:
+            Callable: A wrapped version of the function, executed with pre-
+            and post-processing steps.
         """
         if asyncio.iscoroutinefunction(func):
             @functools.wraps(func)
